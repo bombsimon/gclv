@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+version=
+golangci_lint_config_yaml=
+golangci_binaries_dir=$HOME/.golangci-lint
+golangci_binary_dir=$HOME/bin
+current_version_file="$golangci_binaries_dir/.version"
+
+__usage() {
+  echo "gclv - goalngci-lint version"
+  echo ""
+  echo "Select which version of golangci-lint to use. If a configuration YAML"
+  echo "file is specified the version will be derived from ther."
+  echo ""
+  echo "  --help (-h)      | Print this help"
+  echo "  --version (-v)   | Print the currently selected version"
+  echo "  --installed (-i) | Print all installed versions"
+  echo "  --select         | Select a version to use."
+  echo "                   |   Will download version if not found locally."
+  echo "  --binary-dir     | Where to link golangci-lint binary."
+  echo "                   |  Default $HOME/bin."
+
+  exit 0
+}
+
+__get_current_version() {
+  if [ ! -f "$current_version_file" ]; then
+    touch "$current_version_file"
+  fi
+
+  cat "$current_version_file"
+}
+
+__print_installed() {
+  current_version="$(__get_current_version)"
+
+  for f in "$golangci_binaries_dir"/golangci-lint*; do
+    version=$(basename "${f/*-/}")
+
+    if [ "$version" = "$current_version" ]; then
+      echo "* $version"
+    else
+      echo "  $version"
+    fi
+  done
+
+  exit 0
+}
+
+__download_golangci_binary() {
+  curl -sSfL \
+    https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    | sh -s -- -b "$golangci_binaries_dir" "$version"
+
+  mv "$golangci_binaries_dir/golangci-lint" "$golangci_binaries_dir/golangci-lint-$version"
+}
+
+__link_binary() {
+  if [ ! -f "$golangci_binaries_dir/golangci-lint-$version" ]; then
+    echo "$version was not found - downloading"
+    __download_golangci_binary
+  fi
+
+  echo "Switching to $version"
+
+  if [ ! -d "$golangci_binary_dir" ]; then
+    mkdir -p "$golangci_binary_dir"
+  fi
+
+  rm -f "$golangci_binary_dir/golangci-lint"
+  ln -s "$golangci_binaries_dir/golangci-lint-$version" "$golangci_binary_dir/golangci-lint"
+
+  echo "$version" > "$current_version_file"
+}
+
+# Print help text if there are no arguments, we need at least the .golangci.yaml
+# file to know which version to switch to.
+if [ $# -eq 0 ]; then
+  __usage
+fi
+
+while test $# -gt 0; do
+  case "$1" in
+    -h|--help)
+      __usage
+      ;;
+    -v|--version)
+      __get_current_version
+      exit 0
+      ;;
+    -i|--installed)
+      __print_installed
+      ;;
+    --select*)
+      if [ "${1/=/}" = "$1" ]; then
+        shift
+      fi
+
+      version="${1/*=/}"
+      shift
+      ;;
+    --binary-dir*)
+      if [ "${1/=/}" = "$1" ]; then
+        shift
+      fi
+
+      golangci_binary_dir="${1/*=/}"
+      shift
+      ;;
+    *)
+      if [ -z "$golangci_lint_config_yaml" ]; then
+        golangci_lint_config_yaml=$1
+      fi
+
+      shift
+      ;;
+  esac
+done
+
+# Ensure we have a place to put our binaries and current version tracking.
+if [ ! -d "$golangci_binaries_dir" ]; then
+  mkdir -p "$golangci_binaries_dir"
+fi
+
+__get_version_from_config() {
+  awk -F':' '/golangci-lint-version:/ {print $2}' \
+    "$golangci_lint_config_yaml" | tr -d ' '
+}
+
+if [ -z "$version" ]; then
+  version=$(__get_version_from_config)
+fi
+
+# Already on the version, nothing to do.
+if [ "$version" = "$(__get_current_version)" ]; then
+  exit 0
+fi
+
+__link_binary
+
+# vim: set ts=2 sw=2 et:
