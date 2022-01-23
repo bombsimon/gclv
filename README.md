@@ -26,8 +26,8 @@ Switching to v1.42.0
 ### With `golangci-lint` configuration
 
 Since `golangci-lint` doesn't care about unknown configuration you can specify
-what version you want to use in your [`.golangci.yml`][golangic-lint-config] and
-`gclv` will be able to pick that up.
+what version you want to use in your [`.golangci.yml`][golangci-lint-config]
+and `gclv` will be able to pick that up.
 
 All you need to do is to add the key `golangci-lint-version` to your existing
 configuration file. There are two files in the `examples` directory that can be
