@@ -37,7 +37,7 @@ used to test this.
 $ cd examples
 $ config=golangci-1.40.yml
 
-$ gclv $config
+$ gclv --from-config $config
 Switching to v1.40.0
 
 $ golangci-lint --version

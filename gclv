@@ -3,6 +3,7 @@
 set -euo pipefail
 
 version=
+to_remove=
 golangci_lint_config_yaml=
 golangci_binaries_dir=$HOME/.golangci-lint
 golangci_binary_dir=$HOME/bin
@@ -19,10 +20,23 @@ __usage() {
   echo "  --installed (-i) | Print all installed versions"
   echo "  --select         | Select a version to use."
   echo "                   |   Will download version if not found locally."
+  echo "  --from-config    | Select a version to use from golangci-lint config."
+  echo "                   |   Will download version if not found locally."
+  echo "  --remove         | Remove an installed version."
   echo "  --binary-dir     | Where to link golangci-lint binary."
   echo "                   |  Default $HOME/bin."
 
   exit 0
+}
+
+__get_version_from_config() {
+  if [ ! -f "$golangci_lint_config_yaml" ]; then
+    >&2 echo "'$golangci_lint_config_yaml' was not found - chose an existing file"
+    exit 1
+  fi
+
+  awk -F':' '/golangci-lint-version:/ {print $2}' \
+    "$golangci_lint_config_yaml" | tr -d ' '
 }
 
 __get_current_version() {
@@ -75,6 +89,23 @@ __link_binary() {
   echo "$version" > "$current_version_file"
 }
 
+__remove_binary() {
+  if [ ! -f "$golangci_binaries_dir/golangci-lint-$to_remove" ]; then
+    >&2 echo "$to_remove was not found - nothing to remove"
+    exit 1
+  fi
+
+  if [ "$to_remove" = "$(__get_current_version)" ]; then
+    >&2 echo "$to_remove is set to current active version."
+    >&2 echo "Change version before removing it"
+
+    exit 1
+  fi
+
+  rm "$golangci_binaries_dir/golangci-lint-$to_remove"
+  echo "Removed $to_remove"
+}
+
 # Print help text if there are no arguments, we need at least the .golangci.yaml
 # file to know which version to switch to.
 if [ $# -eq 0 ]; then
@@ -101,19 +132,28 @@ while test $# -gt 0; do
       version="${1/*=/}"
       shift
       ;;
+    --from-file*)
+      if [ "${1/=/}" = "$1" ]; then
+        shift
+      fi
+
+      golangci_lint_config_yaml="${1/*=/}"
+      shift
+      ;;
+    --remove*)
+      if [ "${1/=/}" = "$1" ]; then
+        shift
+      fi
+
+      to_remove="${1/*=/}"
+      shift
+      ;;
     --binary-dir*)
       if [ "${1/=/}" = "$1" ]; then
         shift
       fi
 
       golangci_binary_dir="${1/*=/}"
-      shift
-      ;;
-    *)
-      if [ -z "$golangci_lint_config_yaml" ]; then
-        golangci_lint_config_yaml=$1
-      fi
-
       shift
       ;;
   esac
@@ -124,20 +164,23 @@ if [ ! -d "$golangci_binaries_dir" ]; then
   mkdir -p "$golangci_binaries_dir"
 fi
 
-__get_version_from_config() {
-  awk -F':' '/golangci-lint-version:/ {print $2}' \
-    "$golangci_lint_config_yaml" | tr -d ' '
-}
+# Re-link binary if we have a potential version change.
+if [ -n "$version" ] || [ -n "$golangci_lint_config_yaml" ]; then
+  if [ -z "$version" ]; then
+    version=$(__get_version_from_config)
+  fi
 
-if [ -z "$version" ]; then
-  version=$(__get_version_from_config)
+  # Already on the version, nothing to do.
+  if [ "$version" = "$(__get_current_version)" ]; then
+    exit 0
+  fi
+
+  __link_binary
 fi
 
-# Already on the version, nothing to do.
-if [ "$version" = "$(__get_current_version)" ]; then
-  exit 0
+# Remove binary if we set to_remove.
+if [ -n "$to_remove" ]; then
+  __remove_binary
 fi
-
-__link_binary
 
 # vim: set ts=2 sw=2 et:
