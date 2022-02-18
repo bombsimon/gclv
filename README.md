@@ -47,5 +47,37 @@ $ golangci-lint run --config $config
 main.go:5: unnecessary leading newline (whitespace)
 ```
 
+#### Wrapping `golangci-lint`
+
+`gclv` also has a `--run` flag which can be used to determine version from a
+`.golangci.yml` configuration file and after switching to that version run
+`golangci-lint` with any additional flags.
+
+If no configuration is passed, `golangci-lint config path` will be used to
+determine which configuration to parse version from. If the configuration found
+does not contain a version declaration (`golangci-lint-version`), whatever
+version currently set will be used.
+
+```sh
+$ gclv --run ./examples --config examples/golangci-1.40.yml
+Switching to v1.40.0
+examples/main.go:5: unnecessary leading newline (whitespace)
+
+$ gclv --run ./examples --config examples/golangci-1.43.yml
+Switching to v1.43.0
+examples/main.go:5: unnecessary leading newline (whitespace)
+
+$ gclv --remove v1.41.1
+Removed v1.41.1
+
+$ gclv --run ./examples
+v1.41.1 was not found - downloading
+golangci/golangci-lint info checking GitHub for tag 'v1.41.1'
+golangci/golangci-lint info found version: 1.41.1 for v1.41.1/darwin/arm64
+golangci/golangci-lint info installed /Users/simon.sawert/.golangci-lint/golangci-lint
+Switching to v1.41.1
+examples/main.go:5: unnecessary leading newline (whitespace)
+```
+
   [golangci-lint]: https://golangci-lint.run/
   [golangci-lint-config]: https://golangci-lint.run/usage/configuration/#config-file

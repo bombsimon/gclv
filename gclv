@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+should_run=
 version=
 to_remove=
 golangci_lint_config_yaml=
@@ -23,6 +24,7 @@ __usage() {
   echo "  --from-config    | Select a version to use from golangci-lint config."
   echo "                   |   Will download version if not found locally."
   echo "  --remove         | Remove an installed version."
+  echo "  --run            | Run golangci-lint after chaning version from config."
   echo "  --binary-dir     | Where to link golangci-lint binary."
   echo "                   |  Default $HOME/bin."
 
@@ -106,6 +108,42 @@ __remove_binary() {
   echo "Removed $to_remove"
 }
 
+__set_golangci_yaml_from_arguments() {
+  argumnets_length=$#
+  # Iterate over all remaining arguments to see if we find the `--config` flag.
+  for (( i=1; i <= "$argumnets_length"; i++ )); do
+    case "${!i}" in
+      # Check if the argument starts with `--config`.
+      --config*)
+        # If removing any `=` from the argument ends up with an unchanged value,
+        # the actual value is in the next position (`--config foo`). If so,
+        # increment index to reach next item.
+        if [ "${!i/=/}" = "${!i}" ]; then
+          i=$(( i + 1 ))
+        fi
+
+        # Take the value at the current index after the last `=`. If the value
+        # is `--config=foo` it will be `foo`, if the value is just `foo` it will
+        # still be just foo.
+        golangci_lint_config_yaml="${!i/*=/}"
+        break
+        ;;
+    esac
+  done
+
+  # Use `golangci-lint` to get config file.
+  if [ -z "$golangci_lint_config_yaml" ]; then
+    if ! golangci-lint --version > /dev/null 2>&1; then
+      >&2 echo "Ensure you have any valid version of \`golangci-lint\` in PATH"
+      >&2 echo "when trying to find default \`golangci-lint\` config file."
+
+      exit 1
+    fi
+
+    golangci_lint_config_yaml=$(golangci-lint config path)
+  fi
+}
+
 # Print help text if there are no arguments, we need at least the .golangci.yaml
 # file to know which version to switch to.
 if [ $# -eq 0 ]; then
@@ -156,6 +194,14 @@ while test $# -gt 0; do
       golangci_binary_dir="${1/*=/}"
       shift
       ;;
+    --run)
+      should_run="${1/*=/}"
+      shift
+
+      # We break out and assume that the rest of the arguments are for
+      # `golangci-lint`.
+      break
+      ;;
   esac
 done
 
@@ -164,23 +210,46 @@ if [ ! -d "$golangci_binaries_dir" ]; then
   mkdir -p "$golangci_binaries_dir"
 fi
 
+# If we should run `golangci-lint`, ensure we know where to get the version
+# from.
+if [ -n "$should_run" ]; then
+  __set_golangci_yaml_from_arguments "$@"
+fi
+
 # Re-link binary if we have a potential version change.
 if [ -n "$version" ] || [ -n "$golangci_lint_config_yaml" ]; then
   if [ -z "$version" ]; then
     version=$(__get_version_from_config)
   fi
 
-  # Already on the version, nothing to do.
-  if [ "$version" = "$(__get_current_version)" ]; then
-    exit 0
-  fi
+  # Ensure we now have a version before trying to compare and link. We might not
+  # have a version if someone is using `--run` and a config file is used which
+  # doesn't contain a version declaration. If so, just move on and run whatever
+  # currently selected `golangci-lint` version is.
+  if [ -n "$version" ]; then
+    # Re-link if we're not running the desired version.
+    if ! [ "$version" = "$(__get_current_version)" ]; then
+      __link_binary
+    fi
 
-  __link_binary
+    # If we're not about to run `golangci-lint`, just exit, nothing to do.
+    if [ -z "$should_run" ]; then
+      exit 0
+    fi
+  fi
 fi
 
 # Remove binary if we set to_remove.
 if [ -n "$to_remove" ]; then
   __remove_binary
+fi
+
+# We figured out a version to use, we've switched version if we needed to so now
+# just run `golangci-lint`. Let's assume the PATH `gclv` operates on is first in
+# `PATH` so we just run the `golangci-lint` binary. If not, this tool is useless
+# anyways.
+if [ -n "$should_run" ]; then
+  golangci-lint run "$@"
 fi
 
 # vim: set ts=2 sw=2 et:

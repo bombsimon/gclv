@@ -1,0 +1,10 @@
+---
+golangci-lint-version: v1.41.1
+
+output:
+  print-issued-lines: false
+
+linters:
+  disable-all: true
+  enable:
+    - whitespace
