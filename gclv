@@ -42,6 +42,10 @@ __get_version_from_config() {
 }
 
 __get_current_version() {
+  if [ ! -f "$current_version_file" ]; then
+    touch "$current_version_file"
+  fi
+
   cat "$current_version_file"
 }
 
