@@ -42,15 +42,16 @@ __get_version_from_config() {
 }
 
 __get_current_version() {
-  if [ ! -f "$current_version_file" ]; then
-    touch "$current_version_file"
-  fi
-
   cat "$current_version_file"
 }
 
 __print_installed() {
   current_version="$(__get_current_version)"
+  if [ "$current_version" = "" ]; then
+    echo "No version currently installed!"
+    echo "Use --select to select a version to install"
+    exit 1
+  fi
 
   for f in "$golangci_binaries_dir"/golangci-lint*; do
     version=$(basename "${f/*-/}")
