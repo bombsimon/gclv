@@ -170,7 +170,7 @@ while test $# -gt 0; do
       version="${1/*=/}"
       shift
       ;;
-    --from-file*)
+    --from-config*)
       if [ "${1/=/}" = "$1" ]; then
         shift
       fi
