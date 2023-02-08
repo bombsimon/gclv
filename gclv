@@ -16,24 +16,24 @@ __usage() {
   echo "Select which version of golangci-lint to use. If a configuration YAML"
   echo "file is specified the version will be derived from ther."
   echo ""
-  echo "  --help (-h)      | Print this help"
-  echo "  --version (-v)   | Print the currently selected version"
-  echo "  --installed (-i) | Print all installed versions"
-  echo "  --select         | Select a version to use."
-  echo "                   |   Will download version if not found locally."
-  echo "  --from-config    | Select a version to use from golangci-lint config."
-  echo "                   |   Will download version if not found locally."
-  echo "  --remove         | Remove an installed version."
-  echo "  --run            | Run golangci-lint after chaning version from config."
-  echo "  --binary-dir     | Where to link golangci-lint binary."
-  echo "                   |  Default $HOME/bin."
+  echo "  -h | --help          | Print this help"
+  echo "  -v | --version       | Print the currently selected version"
+  echo "  -i | --installed     | Print all installed versions"
+  echo "  --select <version>   | Select a version to use."
+  echo "                       |   Will download version if not found locally."
+  echo "  --from-config <file> | Select a version to use from golangci-lint config."
+  echo "                       |   Will download version if not found locally."
+  echo "  --remove <version>   | Remove an installed version."
+  echo "  --run                | Run golangci-lint after chaning version from config."
+  echo "  --binary-dir         | Where to link golangci-lint binary."
+  echo "                       |  Default $HOME/bin."
 
   exit 0
 }
 
 __get_version_from_config() {
   if [ ! -f "$golangci_lint_config_yaml" ]; then
-    >&2 echo "'$golangci_lint_config_yaml' was not found - chose an existing file"
+    echo >&2 "'$golangci_lint_config_yaml' was not found - chose an existing file"
     exit 1
   fi
 
@@ -72,8 +72,8 @@ __print_installed() {
 
 __download_golangci_binary() {
   curl -sSfL \
-    https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    | sh -s -- -b "$golangci_binaries_dir" "$version"
+    https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+    sh -s -- -b "$golangci_binaries_dir" "$version"
 
   mv "$golangci_binaries_dir/golangci-lint" "$golangci_binaries_dir/golangci-lint-$version"
 }
@@ -93,18 +93,18 @@ __link_binary() {
   rm -f "$golangci_binary_dir/golangci-lint"
   ln -s "$golangci_binaries_dir/golangci-lint-$version" "$golangci_binary_dir/golangci-lint"
 
-  echo "$version" > "$current_version_file"
+  echo "$version" >"$current_version_file"
 }
 
 __remove_binary() {
   if [ ! -f "$golangci_binaries_dir/golangci-lint-$to_remove" ]; then
-    >&2 echo "$to_remove was not found - nothing to remove"
+    echo >&2 "$to_remove was not found - nothing to remove"
     exit 1
   fi
 
   if [ "$to_remove" = "$(__get_current_version)" ]; then
-    >&2 echo "$to_remove is set to current active version."
-    >&2 echo "Change version before removing it"
+    echo >&2 "$to_remove is set to current active version."
+    echo >&2 "Change version before removing it"
 
     exit 1
   fi
@@ -116,7 +116,7 @@ __remove_binary() {
 __set_golangci_yaml_from_arguments() {
   argumnets_length=$#
   # Iterate over all remaining arguments to see if we find the `--config` flag.
-  for (( i=1; i <= "$argumnets_length"; i++ )); do
+  for ((i = 1; i <= "$argumnets_length"; i++)); do
     case "${!i}" in
       # Check if the argument starts with `--config`.
       --config*)
@@ -124,7 +124,7 @@ __set_golangci_yaml_from_arguments() {
         # the actual value is in the next position (`--config foo`). If so,
         # increment index to reach next item.
         if [ "${!i/=/}" = "${!i}" ]; then
-          i=$(( i + 1 ))
+          i=$((i + 1))
         fi
 
         # Take the value at the current index after the last `=`. If the value
@@ -138,9 +138,9 @@ __set_golangci_yaml_from_arguments() {
 
   # Use `golangci-lint` to get config file.
   if [ -z "$golangci_lint_config_yaml" ]; then
-    if ! golangci-lint --version > /dev/null 2>&1; then
-      >&2 echo "Ensure you have any valid version of \`golangci-lint\` in PATH"
-      >&2 echo "when trying to find default \`golangci-lint\` config file."
+    if ! golangci-lint --version >/dev/null 2>&1; then
+      echo >&2 "Ensure you have any valid version of \`golangci-lint\` in PATH"
+      echo >&2 "when trying to find default \`golangci-lint\` config file."
 
       exit 1
     fi
@@ -172,12 +172,22 @@ while test $# -gt 0; do
         shift
       fi
 
+      if [ -z "${1:-}" ]; then
+        echo "Missing version"
+        break
+      fi
+
       version="${1/*=/}"
       shift
       ;;
     --from-config*)
       if [ "${1/=/}" = "$1" ]; then
         shift
+      fi
+
+      if [ -z "${1:-}" ]; then
+        echo "Missing config file"
+        break
       fi
 
       golangci_lint_config_yaml="${1/*=/}"
@@ -188,12 +198,23 @@ while test $# -gt 0; do
         shift
       fi
 
+      if [ -z "${1:-}" ]; then
+        echo "Missing version to remove as argument"
+        echo ""
+        __usage
+      fi
+
       to_remove="${1/*=/}"
       shift
       ;;
     --binary-dir*)
       if [ "${1/=/}" = "$1" ]; then
         shift
+      fi
+
+      if [ -z "${1:-}" ]; then
+        echo "Missing directory"
+        break
       fi
 
       golangci_binary_dir="${1/*=/}"
@@ -206,6 +227,11 @@ while test $# -gt 0; do
       # We break out and assume that the rest of the arguments are for
       # `golangci-lint`.
       break
+      ;;
+    *)
+      echo "Unknown flag '$1'"
+      echo ""
+      __usage
       ;;
   esac
 done
