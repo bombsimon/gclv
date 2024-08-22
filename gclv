@@ -261,8 +261,6 @@ if [ -n "$version" ] || [ -n "$golangci_lint_config_yaml" ]; then
         | awk '/^ +"name": "v/ {print $2}' \
         | tr -d '",'
       )
-
-    echo "Version 'latest' currently corresponds to $version"
   fi
 
   # Ensure we now have a version before trying to compare and link. We might not
