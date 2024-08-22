@@ -21,6 +21,7 @@ __usage() {
   echo "  -i | --installed     | Print all installed versions"
   echo "  --select <version>   | Select a version to use."
   echo "                       |   Will download version if not found locally."
+  echo "                       |   Set to 'latest' to download latest version"
   echo "  --from-config <file> | Select a version to use from golangci-lint config."
   echo "                       |   Will download version if not found locally."
   echo "  --remove <version>   | Remove an installed version."
@@ -251,6 +252,17 @@ fi
 if [ -n "$version" ] || [ -n "$golangci_lint_config_yaml" ]; then
   if [ -z "$version" ]; then
     version=$(__get_version_from_config)
+  fi
+
+  if [ "$version" = "latest" ]; then
+    version=$(
+      curl -s \
+        https://api.github.com/repos/golangci/golangci-lint/releases/latest \
+        | awk '/^ +"name": "v/ {print $2}' \
+        | tr -d '",'
+      )
+
+    echo "Version 'latest' currently corresponds to $version"
   fi
 
   # Ensure we now have a version before trying to compare and link. We might not
