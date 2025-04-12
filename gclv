@@ -119,21 +119,21 @@ __set_golangci_yaml_from_arguments() {
   # Iterate over all remaining arguments to see if we find the `--config` flag.
   for ((i = 1; i <= "$argumnets_length"; i++)); do
     case "${!i}" in
-      # Check if the argument starts with `--config`.
-      --config*)
-        # If removing any `=` from the argument ends up with an unchanged value,
-        # the actual value is in the next position (`--config foo`). If so,
-        # increment index to reach next item.
-        if [ "${!i/=/}" = "${!i}" ]; then
-          i=$((i + 1))
-        fi
+    # Check if the argument starts with `--config`.
+    --config*)
+      # If removing any `=` from the argument ends up with an unchanged value,
+      # the actual value is in the next position (`--config foo`). If so,
+      # increment index to reach next item.
+      if [ "${!i/=/}" = "${!i}" ]; then
+        i=$((i + 1))
+      fi
 
-        # Take the value at the current index after the last `=`. If the value
-        # is `--config=foo` it will be `foo`, if the value is just `foo` it will
-        # still be just foo.
-        golangci_lint_config_yaml="${!i/*=/}"
-        break
-        ;;
+      # Take the value at the current index after the last `=`. If the value
+      # is `--config=foo` it will be `foo`, if the value is just `foo` it will
+      # still be just foo.
+      golangci_lint_config_yaml="${!i/*=/}"
+      break
+      ;;
     esac
   done
 
@@ -158,82 +158,82 @@ fi
 
 while test $# -gt 0; do
   case "$1" in
-    -h|--help)
-      __usage
-      ;;
-    -v|--version)
-      __get_current_version
-      exit 0
-      ;;
-    -i|--installed)
-      __print_installed
-      ;;
-    --select*)
-      if [ "${1/=/}" = "$1" ]; then
-        shift
-      fi
-
-      if [ -z "${1:-}" ]; then
-        echo "Missing version"
-        break
-      fi
-
-      version="${1/*=/}"
+  -h | --help)
+    __usage
+    ;;
+  -v | --version)
+    __get_current_version
+    exit 0
+    ;;
+  -i | --installed)
+    __print_installed
+    ;;
+  --select*)
+    if [ "${1/=/}" = "$1" ]; then
       shift
-      ;;
-    --from-config*)
-      if [ "${1/=/}" = "$1" ]; then
-        shift
-      fi
+    fi
 
-      if [ -z "${1:-}" ]; then
-        echo "Missing config file"
-        break
-      fi
-
-      golangci_lint_config_yaml="${1/*=/}"
-      shift
-      ;;
-    --remove*)
-      if [ "${1/=/}" = "$1" ]; then
-        shift
-      fi
-
-      if [ -z "${1:-}" ]; then
-        echo "Missing version to remove as argument"
-        echo ""
-        __usage
-      fi
-
-      to_remove="${1/*=/}"
-      shift
-      ;;
-    --binary-dir*)
-      if [ "${1/=/}" = "$1" ]; then
-        shift
-      fi
-
-      if [ -z "${1:-}" ]; then
-        echo "Missing directory"
-        break
-      fi
-
-      golangci_binary_dir="${1/*=/}"
-      shift
-      ;;
-    --run)
-      should_run="${1/*=/}"
-      shift
-
-      # We break out and assume that the rest of the arguments are for
-      # `golangci-lint`.
+    if [ -z "${1:-}" ]; then
+      echo "Missing version"
       break
-      ;;
-    *)
-      echo "Unknown flag '$1'"
+    fi
+
+    version="${1/*=/}"
+    shift
+    ;;
+  --from-config*)
+    if [ "${1/=/}" = "$1" ]; then
+      shift
+    fi
+
+    if [ -z "${1:-}" ]; then
+      echo "Missing config file"
+      break
+    fi
+
+    golangci_lint_config_yaml="${1/*=/}"
+    shift
+    ;;
+  --remove*)
+    if [ "${1/=/}" = "$1" ]; then
+      shift
+    fi
+
+    if [ -z "${1:-}" ]; then
+      echo "Missing version to remove as argument"
       echo ""
       __usage
-      ;;
+    fi
+
+    to_remove="${1/*=/}"
+    shift
+    ;;
+  --binary-dir*)
+    if [ "${1/=/}" = "$1" ]; then
+      shift
+    fi
+
+    if [ -z "${1:-}" ]; then
+      echo "Missing directory"
+      break
+    fi
+
+    golangci_binary_dir="${1/*=/}"
+    shift
+    ;;
+  --run)
+    should_run="${1/*=/}"
+    shift
+
+    # We break out and assume that the rest of the arguments are for
+    # `golangci-lint`.
+    break
+    ;;
+  *)
+    echo "Unknown flag '$1'"
+    echo ""
+    __usage
+    ;;
   esac
 done
 
