@@ -257,10 +257,9 @@ if [ -n "$version" ] || [ -n "$golangci_lint_config_yaml" ]; then
   if [ "$version" = "latest" ]; then
     version=$(
       curl -s \
-        https://api.github.com/repos/golangci/golangci-lint/releases/latest \
-        | awk '/^ +"name": "v/ {print $2}' \
-        | tr -d '",'
-      )
+        https://api.github.com/repos/golangci/golangci-lint/releases/latest |
+        awk '/^ +"name": "v/ {gsub(/[",]/, "", $2); print $2}'
+    )
   fi
 
   # Ensure we now have a version before trying to compare and link. We might not
