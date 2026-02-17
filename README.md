@@ -8,6 +8,14 @@ to `pyenv` or `rvm` where you manage multiple binaries through `gclv`.
 There are two ways to select `golangci-lint` version with `gclv`. For other
 available commands and usage, use `gclv --help`.
 
+You can specify where to download `golangci-lint` binaries by setting
+`GCLV_BINARIES_DIR` and where to link the executable named `golangci-lint` by
+setting `GCLV_BINARY_DIR`.
+
+By default, `golangci-lint` binaries will be downloaded to
+`$HOME/.golangci-lint` and the selected version will be symlinked to
+`$HOME/bin/golangci-lint`.
+
 ### Manually
 
 Just specify the version you want to use. If it does not exist locally it will
@@ -15,35 +23,39 @@ be downloaded. If it exists it will be re-linked. If it's already selected,
 nothing will happen.
 
 ```sh
-$ gclv --select v1.42.0                                                                                                                                                      130 ↵
-v1.42.0 was not found - downloading
-golangci/golangci-lint info checking GitHub for tag 'v1.42.0'
-golangci/golangci-lint info found version: 1.42.0 for v1.42.0/darwin/arm64
-golangci/golangci-lint info installed /Users/some.user/.golangci-lint/golangci-lint
-Switching to v1.42.0
+› gclv --select v2.9.0
+v2.9.0 was not found - downloading
+golangci/golangci-lint info checking GitHub for tag 'v2.9.0'
+golangci/golangci-lint info found version: 2.9.0 for v2.9.0/darwin/arm64
+golangci/golangci-lint info installed /Users/simon/.golangci-lint/golangci-lint
+Switching to v2.9.0
 ```
 
 ### With `golangci-lint` configuration
 
-Since `golangci-lint` doesn't care about unknown configuration you can specify
-what version you want to use in your [`.golangci.yml`][golangci-lint-config]
-and `gclv` will be able to pick that up.
+> [!NOTE]
+> `golangci-lint` _does_ have a JSON schema but it's optional to verify your
+> configuration. If you do, verification will fail if you use this method.
+
+Since `golangci-lint` allows unknown configuration you can specify what version
+you want to use in your [`.golangci.yml`][golangci-lint-config] and `gclv` will
+be able to pick that up.
 
 All you need to do is to add the key `golangci-lint-version` to your existing
 configuration file. There are two files in the `examples` directory that can be
 used to test this.
 
 ```sh
-$ cd examples
-$ config=golangci-1.40.yml
+› cd examples
+› config=golangci-1.40.yml
 
-$ gclv --from-config $config
+› gclv --from-config $config
 Switching to v1.40.0
 
-$ golangci-lint --version
+› golangci-lint --version
 golangci-lint has version 1.40.0 built from 5c6adb63 on 2021-05-10T10:45:21Z
 
-$ golangci-lint run --config $config
+› golangci-lint run --config $config
 main.go:5: unnecessary leading newline (whitespace)
 ```
 
@@ -59,25 +71,25 @@ does not contain a version declaration (`golangci-lint-version`), whatever
 version currently set will be used.
 
 ```sh
-$ gclv --run ./examples --config examples/golangci-1.40.yml
+› gclv --run ./examples --config examples/golangci-1.40.yml
 Switching to v1.40.0
 examples/main.go:5: unnecessary leading newline (whitespace)
 
-$ gclv --run ./examples --config examples/golangci-1.43.yml
+› gclv --run ./examples --config examples/golangci-1.43.yml
 Switching to v1.43.0
 examples/main.go:5: unnecessary leading newline (whitespace)
 
-$ gclv --remove v1.41.1
+› gclv --remove v1.41.1
 Removed v1.41.1
 
-$ gclv --run ./examples
+› gclv --run ./examples
 v1.41.1 was not found - downloading
 golangci/golangci-lint info checking GitHub for tag 'v1.41.1'
 golangci/golangci-lint info found version: 1.41.1 for v1.41.1/darwin/arm64
-golangci/golangci-lint info installed /Users/simon.sawert/.golangci-lint/golangci-lint
+golangci/golangci-lint info installed /Users/simon/.golangci-lint/golangci-lint
 Switching to v1.41.1
 examples/main.go:5: unnecessary leading newline (whitespace)
 ```
 
-  [golangci-lint]: https://golangci-lint.run/
-  [golangci-lint-config]: https://golangci-lint.run/usage/configuration/#config-file
+[golangci-lint]: https://golangci-lint.run/
+[golangci-lint-config]: https://golangci-lint.run/usage/configuration/#config-file
