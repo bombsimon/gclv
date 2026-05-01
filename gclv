@@ -76,7 +76,7 @@ __print_installed() {
 
 __download_golangci_binary() {
   curl -sSfL \
-    https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |
+    https://golangci-lint.run/install.sh |
     sh -s -- -b "$golangci_binaries_dir" "$version"
 
   mv "$golangci_binaries_dir/golangci-lint" "$golangci_binaries_dir/golangci-lint-$version"
